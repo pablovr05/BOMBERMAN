@@ -1,0 +1,22 @@
+{
+    "name": "exemple-0",
+    "version": "1.0.0",
+    "main": "./server/app.js",
+    "scripts": {
+        "dev": "node --watch --watch-path ./server ./server/app.js",
+        "pm2start": "pm2 start ./server/app.js",
+        "pm2list": "pm2 list",
+        "pm2stop": "pm2 delete app",
+        "ws": "^8.14.2"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "dependencies": {
+        "express": "^4.21.1",
+        "pm2": "^5.4.2",
+        "uuid": "^11.1.0",
+        "ws": "^8.18.1"
+    }
+}
