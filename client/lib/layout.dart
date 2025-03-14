@@ -81,7 +81,7 @@ class _LayoutState extends State<Layout> {
               _onKeyEvent(event, appData);
             },
             child: CustomPaint(
-              painter: CanvasPainter(appData),
+              painter: CanvasPainter(gameData: appData, imagesCache: {}),
               child: Container(),
             ),
           ),

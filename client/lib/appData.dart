@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'utilsWebsockets.dart';
 
 class AppData extends ChangeNotifier {
-  // Atributs per gestionar la connexió
   final WebSocketsHandler _wsHandler = WebSocketsHandler();
   final String _wsServer = "localhost";
   final int _wsPort = 8888;
@@ -15,61 +14,16 @@ class AppData extends ChangeNotifier {
   final int _maxReconnectAttempts = 5;
   final Duration _reconnectDelay = Duration(seconds: 3);
 
-  // Atributs per gestionar el joc
   Map<String, ui.Image> imagesCache = {};
-  GameData? gameData; // Usamos GameData en lugar de un Map genérico
+  GameData? gameData;
   dynamic playerData;
+  Map<String, dynamic> gameState = {};
 
   AppData() {
     _connectToWebSocket();
-    loadGameDataFromAssets(); // Cargar datos de juego al iniciar
+    loadGameDataFromAssets();
   }
 
-  // Conectar al WebSocket
-  void _connectToWebSocket() {
-    if (_reconnectAttempts >= _maxReconnectAttempts) {
-      if (kDebugMode) {
-        print("S'ha assolit el màxim d'intents de reconnexió.");
-      }
-      return;
-    }
-
-    isConnected = false;
-    notifyListeners();
-
-    _wsHandler.connectToServer(
-      _wsServer,
-      _wsPort,
-      _onWebSocketMessage,
-      onError: _onWebSocketError,
-      onDone: _onWebSocketClosed,
-    );
-
-    isConnected = true;
-    _reconnectAttempts = 0;
-    notifyListeners();
-  }
-
-  // Tratar un mensaje recibido
-  void _onWebSocketMessage(String message) {
-    try {
-      var data = jsonDecode(message);
-      if (data["type"] == "update") {
-        gameState = {}..addAll(data["gameState"]);
-        String? playerId = _wsHandler.socketId;
-        if (playerId != null && gameState["players"] is List) {
-          playerData = _getPlayerData(playerId);
-        }
-        notifyListeners();
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print("Error processant missatge WebSocket: $e");
-      }
-    }
-  }
-
-  // Tratar errores de conexión
   void _onWebSocketError(dynamic error) {
     if (kDebugMode) {
       print("Error de WebSocket: $error");
@@ -108,7 +62,48 @@ class AppData extends ChangeNotifier {
     }
   }
 
-  // Filtrar les dades del propi jugador
+  void _connectToWebSocket() {
+    if (_reconnectAttempts >= _maxReconnectAttempts) {
+      if (kDebugMode) {
+        print("S'ha assolit el màxim d'intents de reconnexió.");
+      }
+      return;
+    }
+
+    isConnected = false;
+    notifyListeners();
+
+    _wsHandler.connectToServer(
+      _wsServer,
+      _wsPort,
+      _onWebSocketMessage,
+      onError: _onWebSocketError,
+      onDone: _onWebSocketClosed,
+    );
+
+    isConnected = true;
+    _reconnectAttempts = 0;
+    notifyListeners();
+  }
+
+  void _onWebSocketMessage(String message) {
+    try {
+      var data = jsonDecode(message);
+      if (data["type"] == "update") {
+        gameState = {}..addAll(data["gameState"]);
+        String? playerId = _wsHandler.socketId;
+        if (playerId != null && gameState["players"] is List) {
+          playerData = _getPlayerData(playerId);
+        }
+        notifyListeners();
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error processant missatge WebSocket: $e");
+      }
+    }
+  }
+
   dynamic _getPlayerData(String playerId) {
     return (gameState["players"] as List).firstWhere(
       (player) => player["id"] == playerId,
@@ -116,30 +111,14 @@ class AppData extends ChangeNotifier {
     );
   }
 
-  // Desconnectar-se del servidor
-  void disconnect() {
-    _wsHandler.disconnectFromServer();
-    isConnected = false;
-    notifyListeners();
-  }
-
-  // Enviar un missatge al servidor
-  void sendMessage(String message) {
-    if (isConnected) {
-      _wsHandler.sendMessage(message);
-    }
-  }
-
-  // Carregar dades del joc des d'un fitxer JSON (carregar des dels assets)
   Future<void> loadGameDataFromAssets() async {
     final String response =
         await rootBundle.loadString('assets/game_data.json');
     final data = jsonDecode(response);
     gameData = GameData.fromJson(data);
-    notifyListeners(); // Notificar que s'han carregat les dades
+    notifyListeners();
   }
 
-  // Obté una imatge de 'assets' (si no la té ja en caché)
   Future<ui.Image> getImage(String assetName) async {
     if (!imagesCache.containsKey(assetName)) {
       final ByteData data = await rootBundle.load('assets/$assetName');
@@ -153,5 +132,81 @@ class AppData extends ChangeNotifier {
     final Completer<ui.Image> completer = Completer();
     ui.decodeImageFromList(bytes, (ui.Image img) => completer.complete(img));
     return completer.future;
+  }
+}
+
+class GameData {
+  final String name;
+  final List<Level> levels;
+
+  GameData({required this.name, required this.levels});
+
+  factory GameData.fromJson(Map<String, dynamic> json) {
+    var levelsList = (json['levels'] as List)
+        .map((levelJson) => Level.fromJson(levelJson))
+        .toList();
+
+    return GameData(name: json['name'], levels: levelsList);
+  }
+}
+
+class Level {
+  final String name;
+  final String description;
+  final List<Layer> layers;
+
+  Level({required this.name, required this.description, required this.layers});
+
+  factory Level.fromJson(Map<String, dynamic> json) {
+    var layersList = (json['layers'] as List)
+        .map((layerJson) => Layer.fromJson(layerJson))
+        .toList();
+
+    return Level(
+      name: json['name'],
+      description: json['description'],
+      layers: layersList,
+    );
+  }
+}
+
+class Layer {
+  final String name;
+  final int x;
+  final int y;
+  final int depth;
+  final String tilesSheetFile;
+  final int tilesWidth;
+  final int tilesHeight;
+  final List<List<int>> tileMap;
+  final bool visible;
+
+  Layer({
+    required this.name,
+    required this.x,
+    required this.y,
+    required this.depth,
+    required this.tilesSheetFile,
+    required this.tilesWidth,
+    required this.tilesHeight,
+    required this.tileMap,
+    required this.visible,
+  });
+
+  factory Layer.fromJson(Map<String, dynamic> json) {
+    var tileMapList =
+        (json['tileMap'] as List).map((row) => List<int>.from(row)).toList();
+
+    return Layer(
+      name: json['name'],
+      x: json['x'],
+      y: json['y'],
+      depth: json['depth'],
+      tilesSheetFile: json['tilesSheetFile'],
+      tilesWidth: json['tilesWidth'],
+      tilesHeight: json['tilesHeight'],
+      tileMap: tileMapList,
+      visible: json['visible'],
+    );
   }
 }
