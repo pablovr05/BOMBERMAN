@@ -62,6 +62,6 @@ class CanvasPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
-    return true; // Permite actualizar el canvas en cada repaint si los datos cambian
+    return true;
   }
 }
