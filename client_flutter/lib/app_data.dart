@@ -19,6 +19,7 @@ class AppData extends ChangeNotifier {
   Map<String, ui.Image> imagesCache = {};
   Map<String, dynamic> gameState = {};
   dynamic playerData;
+  dynamic mapData;
 
   AppData() {
     _connectToWebSocket();
@@ -60,6 +61,7 @@ class AppData extends ChangeNotifier {
         if (playerId != null && gameState["players"] is List) {
           // Guardar les dades del propi jugador
           playerData = _getPlayerData(playerId);
+          mapData = _getMapData();
         }
         notifyListeners();
       }
@@ -117,6 +119,17 @@ class AppData extends ChangeNotifier {
       (player) => player["id"] == playerId,
       orElse: () => {},
     );
+  }
+
+  dynamic _getMapData() {
+    if (gameState["map"] is List) {
+      return gameState["map"];
+    } else {
+      if (kDebugMode) {
+        print("gameState['map'] no es una lista o es nula");
+      }
+      return []; // O cualquier valor por defecto adecuado.
+    }
   }
 
   // Desconnectar-se del servidor

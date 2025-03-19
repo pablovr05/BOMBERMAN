@@ -1,3 +1,4 @@
+const fs = require('fs');
 'use strict';
 
 const COLORS = ['green', 'blue', 'orange', 'red', 'purple'];
@@ -22,8 +23,9 @@ class GameLogic {
     constructor() {
         this.objects = [];
         this.players = new Map();
+        this.mapData = this.loadMapData(); // Cargar el mapa al iniciar el juego
 
-        // Rectangles que mou el servidor
+        // Rectángulos que mueve el servidor
         for (let i = 0; i < 10; i++) {
             this.objects.push({
                 x: Math.random() * (1 - OBJECT_WIDTH),
@@ -159,8 +161,20 @@ class GameLogic {
     getGameState() {
         return {
             objects: this.objects,
-            players: Array.from(this.players.values())
+            players: Array.from(this.players.values()),
+            map: this.mapData, // Agregar el mapa al estado del juego
         };
+    }
+
+    loadMapData() {
+        try {
+            const rawData = fs.readFileSync('assets/game_data.json', 'utf8');
+            const mapData = JSON.parse(rawData);
+            return mapData;
+        } catch (error) {
+            console.error('Error al cargar el mapa:', error);
+            return null;
+        }
     }
 }
 
