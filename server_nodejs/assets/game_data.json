@@ -409,14 +409,80 @@
           "color": "purple"
         }
       ],
-      "sprites": []
-    },
-    {
-      "name": "level1",
-      "description": "level1",
-      "layers": [],
-      "zones": [],
-      "sprites": []
+      "sprites": [
+        {
+          "type": "idle-front",
+          "x": 0,
+          "y": 0,
+          "width": 32,
+          "height": 32,
+          "imageFile": "C:\\Users\\extre\\Documents\\GitHub\\BOMBERMAN\\server_nodejs\\assets\\idle-front.png"
+        },
+        {
+          "type": "idle-back",
+          "x": 0,
+          "y": 0,
+          "width": 32,
+          "height": 32,
+          "imageFile": "C:\\Users\\extre\\Documents\\GitHub\\BOMBERMAN\\server_nodejs\\assets\\idle-back.png"
+        },
+        {
+          "type": "idle-left",
+          "x": 0,
+          "y": 0,
+          "width": 32,
+          "height": 32,
+          "imageFile": "C:\\Users\\extre\\Documents\\GitHub\\BOMBERMAN\\server_nodejs\\assets\\idle-left.png"
+        },
+        {
+          "type": "idle-right",
+          "x": 0,
+          "y": 0,
+          "width": 32,
+          "height": 32,
+          "imageFile": "C:\\Users\\extre\\Documents\\GitHub\\BOMBERMAN\\server_nodejs\\assets\\idle-right.png"
+        },
+        {
+          "type": "walk-back",
+          "x": 0,
+          "y": 0,
+          "width": 32,
+          "height": 32,
+          "imageFile": "C:\\Users\\extre\\Documents\\GitHub\\BOMBERMAN\\server_nodejs\\assets\\walk-back.png"
+        },
+        {
+          "type": "walk-front",
+          "x": 0,
+          "y": 0,
+          "width": 32,
+          "height": 32,
+          "imageFile": "C:\\Users\\extre\\Documents\\GitHub\\BOMBERMAN\\server_nodejs\\assets\\walk-front.png"
+        },
+        {
+          "type": "walk-left",
+          "x": 0,
+          "y": 0,
+          "width": 32,
+          "height": 32,
+          "imageFile": "C:\\Users\\extre\\Documents\\GitHub\\BOMBERMAN\\server_nodejs\\assets\\walk-left.png"
+        },
+        {
+          "type": "walk-right",
+          "x": 0,
+          "y": 0,
+          "width": 32,
+          "height": 32,
+          "imageFile": "C:\\Users\\extre\\Documents\\GitHub\\BOMBERMAN\\server_nodejs\\assets\\walk-right.png"
+        },
+        {
+          "type": "death-front",
+          "x": 0,
+          "y": 0,
+          "width": 32,
+          "height": 32,
+          "imageFile": "C:\\Users\\extre\\Documents\\GitHub\\BOMBERMAN\\server_nodejs\\assets\\death-front.png"
+        }
+      ]
     }
   ]
 }
