@@ -85,12 +85,11 @@ class CanvasPainter extends CustomPainter {
         textDirection: TextDirection.ltr,
       );
       final textStyle = ui.TextStyle(color: playerColor, fontSize: 14);
-      final paragraphBuilder =
-          ui.ParagraphBuilder(paragraphStyle)
-            ..pushStyle(textStyle)
-            ..addText(
-              "Press Up, Down, Left or Right keys to move (id: $playerId)",
-            );
+      final paragraphBuilder = ui.ParagraphBuilder(paragraphStyle)
+        ..pushStyle(textStyle)
+        ..addText(
+          "Press Up, Down, Left or Right keys to move (id: $playerId)",
+        );
       final paragraph = paragraphBuilder.build();
       paragraph.layout(ui.ParagraphConstraints(width: painterSize.width));
       canvas.drawParagraph(
@@ -133,20 +132,12 @@ class CanvasPainter extends CustomPainter {
     switch (direction) {
       case "left":
         return Offset(64, 0);
-      case "upLeft":
-        return Offset(128, 0);
       case "up":
         return Offset(192, 0);
-      case "upRight":
-        return Offset(256, 0);
       case "right":
         return Offset(320, 0);
-      case "downRight":
-        return Offset(384, 0);
       case "down":
         return Offset(448, 0);
-      case "downLeft":
-        return Offset(512, 0);
       default:
         return Offset(0, 0);
     }

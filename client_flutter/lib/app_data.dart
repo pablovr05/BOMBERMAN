@@ -122,13 +122,20 @@ class AppData extends ChangeNotifier {
   }
 
   dynamic _getMapData() {
-    if (gameState["map"] is List) {
+    if (gameState["map"] == null) {
+      if (kDebugMode) {
+        print("gameState['map'] es nulo.");
+      }
+      return {}; // Retorna un mapa vacío si es nulo
+    } else if (gameState["map"] is Map) {
+      // Si es un mapa, retornamos el mapa directamente
       return gameState["map"];
     } else {
       if (kDebugMode) {
-        print("gameState['map'] no es una lista o es nula");
+        print(
+            "gameState['map'] no es un mapa, es un ${gameState["map"]?.runtimeType}.");
       }
-      return []; // O cualquier valor por defecto adecuado.
+      return {}; // Retorna un mapa vacío si no es un mapa
     }
   }
 
@@ -144,21 +151,5 @@ class AppData extends ChangeNotifier {
     if (isConnected) {
       _wsHandler.sendMessage(message);
     }
-  }
-
-  // Obté una imatge de 'assets' (si no la té ja en caché)
-  Future<ui.Image> getImage(String assetName) async {
-    if (!imagesCache.containsKey(assetName)) {
-      final ByteData data = await rootBundle.load('assets/$assetName');
-      final Uint8List bytes = data.buffer.asUint8List();
-      imagesCache[assetName] = await decodeImage(bytes);
-    }
-    return imagesCache[assetName]!;
-  }
-
-  Future<ui.Image> decodeImage(Uint8List bytes) {
-    final Completer<ui.Image> completer = Completer();
-    ui.decodeImageFromList(bytes, (ui.Image img) => completer.complete(img));
-    return completer.future;
   }
 }
