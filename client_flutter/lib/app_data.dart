@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'utils_websockets.dart';
 
 class AppData extends ChangeNotifier {
@@ -24,6 +23,8 @@ class AppData extends ChangeNotifier {
   AppData() {
     _connectToWebSocket();
   }
+
+  get levels => null;
 
   // Connectar amb el servidor (amb reintents si falla)
   void _connectToWebSocket() {

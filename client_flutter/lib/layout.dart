@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +16,20 @@ class Layout extends StatefulWidget {
 class _LayoutState extends State<Layout> {
   final FocusNode _focusNode = FocusNode();
   final Set<String> _pressedKeys = {};
+  late Map<String, ui.Image> imagesCache = {};
+
+  // Load the images from the assets
+  Future<void> _loadImages() async {
+    imagesCache['grass.png'] = await _loadImage('assets/grass.png');
+    imagesCache['walls.png'] = await _loadImage('assets/walls.png');
+  }
+
+  // Helper function to load images from assets
+  Future<ui.Image> _loadImage(String assetPath) async {
+    final data = await rootBundle.load(assetPath);
+    final bytes = data.buffer.asUint8List();
+    return await decodeImageFromList(bytes);
+  }
 
   // Tractar què passa quan el jugador apreta una tecla
   void _onKeyEvent(KeyEvent event, AppData appData) {
@@ -53,6 +67,12 @@ class _LayoutState extends State<Layout> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadImages(); // Load the images asynchronously
+  }
+
+  @override
   Widget build(BuildContext context) {
     final appData = Provider.of<AppData>(context);
 
@@ -66,10 +86,15 @@ class _LayoutState extends State<Layout> {
             onKeyEvent: (KeyEvent event) {
               _onKeyEvent(event, appData);
             },
-            child: CustomPaint(
-              painter: CanvasPainter(appData),
-              child: Container(),
-            ),
+            child: imagesCache.isEmpty
+                ? Center(
+                    child:
+                        CupertinoActivityIndicator()) // Show loading spinner while images are loading
+                : CustomPaint(
+                    painter: CanvasPainter(
+                        appData, imagesCache), // Pass imagesCache here
+                    child: Container(),
+                  ),
           ),
         ),
       ),
