@@ -10,9 +10,11 @@ class CanvasPainter extends CustomPainter {
   CanvasPainter(this.appData, this.imagesCache);
 
   @override
-  void paint(Canvas canvas, Size painterSize) async {
+  void paint(Canvas canvas, Size painterSize) {
     final paint = Paint();
     paint.color = Colors.white;
+
+    // Dibuja el fondo blanco
     canvas.drawRect(
       Rect.fromLTWH(0, 0, painterSize.width, painterSize.height),
       paint,
@@ -21,24 +23,27 @@ class CanvasPainter extends CustomPainter {
     var gameState = appData.gameState;
     var mapData = appData.mapData;
 
-    // Drawing map and levels
+    // Dibuja el mapa y niveles
     if (mapData != null) {
-      // We will now loop through layers of the map data to draw tiles and other elements
-      for (var level in appData.levels) {
-        print('🎮 Level: ${level.name}');
-        for (var layer in level.layers) {
+      for (var level in mapData.levels) {
+        //print('🎮 Nivel: ${level.name}');
+
+        // Ordena las capas según el depth
+        var sortedLayers = List<Layer>.from(level.layers);
+        sortedLayers.sort(
+            (a, b) => a.depth.compareTo(b.depth)); // Ordenar por profundidad
+
+        for (var layer in sortedLayers) {
           if (layer.visible) {
-            print('🖌️ Drawing layer: ${layer.name}');
+            //print('🖌️ Dibujando capa: ${layer.name}');
             _drawLayer(canvas, layer);
           }
         }
       }
     }
 
-    // Draw players if any
-    // Draw players if any
+    // Dibuja jugadores si hay alguno
     if (gameState.isNotEmpty) {
-      // Draw players (colored circles)
       var players = gameState["players"];
       if (players != null) {
         for (var player in players) {
@@ -47,15 +52,14 @@ class CanvasPainter extends CustomPainter {
             Offset(player["x"], player["y"]),
             painterSize,
           );
-
           double radius = _serverToPainterRadius(player["radius"], painterSize);
           canvas.drawCircle(pos, radius, paint);
         }
       } else {
-        print('⚠️ No players found in gameState');
+        //print('⚠️ No players found in gameState');
       }
 
-      // Display player information text and ID
+      // Mostrar información del jugador y su ID
       String playerId = appData.playerData["id"];
       Color playerColor = _getColorFromString(appData.playerData["color"]);
       final paragraphStyle = ui.ParagraphStyle(
@@ -74,7 +78,7 @@ class CanvasPainter extends CustomPainter {
         Offset(10, painterSize.height - paragraph.height - 5),
       );
 
-      // Display the connection circle (top-right corner)
+      // Mostrar el círculo de conexión (esquina superior derecha)
       paint.color = appData.isConnected ? Colors.green : Colors.red;
       canvas.drawCircle(Offset(painterSize.width - 10, 10), 5, paint);
     }
@@ -83,7 +87,7 @@ class CanvasPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 
-  // Convert server coordinates to painter coordinates
+  // Convertir coordenadas del servidor a coordenadas de pintado
   Offset _serverToPainterCoords(Offset serverCoords, Size painterSize) {
     return Offset(
       serverCoords.dx * painterSize.width,
@@ -91,12 +95,12 @@ class CanvasPainter extends CustomPainter {
     );
   }
 
-  // Convert server radius to painter radius
+  // Convertir el radio del servidor a radio de pintado
   double _serverToPainterRadius(double serverRadius, Size painterSize) {
     return serverRadius * painterSize.width;
   }
 
-  // Convert a string to a Color
+  // Convertir un string a un color
   static Color _getColorFromString(String color) {
     switch (color.toLowerCase()) {
       case "green":
@@ -112,33 +116,47 @@ class CanvasPainter extends CustomPainter {
     }
   }
 
-  // Draw a layer's tiles on the canvas
   void _drawLayer(Canvas canvas, Layer layer) {
     final image = imagesCache[layer.tilesSheetFile];
-    final tileWidth = layer.tilesWidth.toDouble();
-    final tileHeight = layer.tilesHeight.toDouble();
 
+    // Añadir un factor de escala
+    final scaleFactor =
+        1.5; // Escala por defecto, ajusta este valor según lo necesites.
+
+    // Escalar el tamaño de las tiles
+    final tileWidth = layer.tilesWidth.toDouble() * scaleFactor;
+    final tileHeight = layer.tilesHeight.toDouble() * scaleFactor;
+
+    // Verificamos si la imagen está en el caché
     if (image == null) {
-      print('⚠️ Image not found for ${layer.name}');
       return;
     }
 
+    // Iteramos por el tileMap de la capa y dibujamos las tiles
     for (int y = 0; y < layer.tileMap.length; y++) {
       for (int x = 0; x < layer.tileMap[y].length; x++) {
         int tileIndex = layer.tileMap[y][x];
 
         if (tileIndex != -1) {
-          double posX = x * tileWidth;
-          double posY = y * tileHeight;
+          double posX =
+              x * tileWidth; // Ajustamos la posición X por el factor de escala
+          double posY =
+              y * tileHeight; // Ajustamos la posición Y por el factor de escala
 
-          int tilesPerRow = (image.width ~/ tileWidth);
-          int tileX = (tileIndex % tilesPerRow) * tileWidth.toInt();
-          int tileY = (tileIndex ~/ tilesPerRow) * tileHeight.toInt();
+          // Cálculos para obtener la posición dentro de la imagen
+          int tilesPerRow = (image.width ~/
+              layer.tilesWidth); // Tiles por fila en la imagen original
+          int tileX = (tileIndex % tilesPerRow) * layer.tilesWidth;
+          int tileY = (tileIndex ~/ tilesPerRow) * layer.tilesHeight;
 
-          Rect srcRect = Rect.fromLTWH(
-              tileX.toDouble(), tileY.toDouble(), tileWidth, tileHeight);
+          // Ajustamos las coordenadas dentro de la imagen al escalarlas
+          Rect srcRect = Rect.fromLTWH(tileX.toDouble(), tileY.toDouble(),
+              layer.tilesWidth.toDouble(), layer.tilesHeight.toDouble());
+
+          // Ajustamos el tamaño de destino para escalar la imagen
           Rect dstRect = Rect.fromLTWH(posX, posY, tileWidth, tileHeight);
 
+          // Dibujar la tile en el canvas con el tamaño escalado
           canvas.drawImageRect(image, srcRect, dstRect, Paint());
         }
       }

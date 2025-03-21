@@ -21,7 +21,7 @@ class _LayoutState extends State<Layout> {
   // Load the images from the assets
   Future<void> _loadImages() async {
     imagesCache['grass.png'] = await _loadImage('assets/grass.png');
-    imagesCache['walls.png'] = await _loadImage('assets/walls.png');
+    imagesCache['wall.png'] = await _loadImage('assets/wall.png');
   }
 
   // Helper function to load images from assets

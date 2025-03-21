@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:ui' as ui;
+import 'package:exemple_ws/game_data.dart';
 import 'package:flutter/foundation.dart';
 import 'utils_websockets.dart';
 
@@ -23,8 +24,6 @@ class AppData extends ChangeNotifier {
   AppData() {
     _connectToWebSocket();
   }
-
-  get levels => null;
 
   // Connectar amb el servidor (amb reintents si falla)
   void _connectToWebSocket() {
@@ -122,6 +121,7 @@ class AppData extends ChangeNotifier {
     );
   }
 
+  // Asumiendo que tienes un archivo JSON o alguna fuente de datos para GameData
   dynamic _getMapData() {
     if (gameState["map"] == null) {
       if (kDebugMode) {
@@ -129,14 +129,12 @@ class AppData extends ChangeNotifier {
       }
       return {}; // Retorna un mapa vacío si es nulo
     } else if (gameState["map"] is Map) {
-      // Si es un mapa, retornamos el mapa directamente
-      return gameState["map"];
+      return GameData.fromJson(gameState["map"]);
     } else {
       if (kDebugMode) {
-        print(
-            "gameState['map'] no es un mapa, es un ${gameState["map"]?.runtimeType}.");
+        print("gameState['map'] no es un mapa válido.");
       }
-      return {}; // Retorna un mapa vacío si no es un mapa
+      return {}; // Retorna un mapa vacío si no es válido
     }
   }
 
