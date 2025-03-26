@@ -26,37 +26,55 @@ class CanvasPainter extends CustomPainter {
     // Dibuja el mapa y niveles
     if (mapData != null) {
       for (var level in mapData.levels) {
-        //print('🎮 Nivel: ${level.name}');
-
-        // Ordena las capas según el depth
         var sortedLayers = List<Layer>.from(level.layers);
         sortedLayers.sort(
             (a, b) => a.depth.compareTo(b.depth)); // Ordenar por profundidad
 
         for (var layer in sortedLayers) {
           if (layer.visible) {
-            //print('🖌️ Dibujando capa: ${layer.name}');
             _drawLayer(canvas, layer);
           }
         }
       }
+    } else {
+      print('⚠️ No se encontró mapa en appData'); // Mensaje si no hay mapa
     }
-
-    // Dibuja jugadores si hay alguno
+    print("1");
     if (gameState.isNotEmpty) {
+      print("2");
+      print(
+          '🧑‍🤝‍🧑 Jugadores encontrados. Procesando...'); // Mensaje en consola
       var players = gameState["players"];
       if (players != null) {
+        print("3");
         for (var player in players) {
+          print('👤 Procesando jugador: ${player["id"]}');
+
+          // Mostrar en consola cada vez que se dibuja un jugador
           paint.color = _getColorFromString(player["color"]);
+          print("4");
           Offset pos = _serverToPainterCoords(
-            Offset(player["x"], player["y"]),
+            Offset(
+              (player["x"] as num).toDouble() * 36,
+              (player["y"] as num).toDouble() * 36,
+            ),
             painterSize,
           );
+
+          print("5");
           double radius = _serverToPainterRadius(player["radius"], painterSize);
+
+          // Mensaje indicando que se está dibujando el jugador
+          print(
+              '🎯 Dibujando jugador con ID: ${player["id"]} en posición: (${player["x"]}, ${player["y"]})');
+          print('🎨 Color del jugador: ${player["color"]}, radio: $radius');
+          print('📍 Posición en canvas: $pos');
+
+          // Dibuja el jugador como un círculo
           canvas.drawCircle(pos, radius, paint);
         }
       } else {
-        //print('⚠️ No players found in gameState');
+        print('⚠️ No se encontraron jugadores en el estado del juego');
       }
 
       // Mostrar información del jugador y su ID
@@ -81,6 +99,8 @@ class CanvasPainter extends CustomPainter {
       // Mostrar el círculo de conexión (esquina superior derecha)
       paint.color = appData.isConnected ? Colors.green : Colors.red;
       canvas.drawCircle(Offset(painterSize.width - 10, 10), 5, paint);
+    } else {
+      print('⚠️ No hay jugadores en el estado del juego');
     }
   }
 
@@ -90,8 +110,8 @@ class CanvasPainter extends CustomPainter {
   // Convertir coordenadas del servidor a coordenadas de pintado
   Offset _serverToPainterCoords(Offset serverCoords, Size painterSize) {
     return Offset(
-      serverCoords.dx * painterSize.width,
-      serverCoords.dy * painterSize.height,
+      serverCoords.dx.toDouble(),
+      serverCoords.dy.toDouble(),
     );
   }
 
@@ -129,6 +149,7 @@ class CanvasPainter extends CustomPainter {
 
     // Verificamos si la imagen está en el caché
     if (image == null) {
+      print('⚠️ No se encontró imagen en caché para la capa: ${layer.name}');
       return;
     }
 
@@ -138,6 +159,7 @@ class CanvasPainter extends CustomPainter {
         int tileIndex = layer.tileMap[y][x];
 
         if (tileIndex != -1) {
+          // Asegurarte de que posX y posY son valores double
           double posX =
               x * tileWidth; // Ajustamos la posición X por el factor de escala
           double posY =

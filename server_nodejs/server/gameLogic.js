@@ -3,10 +3,10 @@ const fs = require('fs');
 
 const COLORS = ['green', 'blue', 'orange', 'red'];
 const POSITIONS = [
-    { x: 0.1, y: 0.1 },
-    { x: 0.9, y: 0.1 },
-    { x: 0.1, y: 0.9 },
-    { x: 0.9, y: 0.9 }
+    { x: 1.5, y: 1.5 },
+    { x: 13.5, y: 13.5 },
+    { x: 13.5, y: 1.5 },
+    { x: 1.5, y: 13.5 }
 ];
 
 const SPEED = 0.2;
@@ -30,6 +30,7 @@ class GameLogic {
     // Es connecta un client/jugador
     addClient(id) {
         let pos = this.getNextPosition();
+        console.log(pos)
         let color = this.getAvailableColor();
 
         this.players.set(id, {
@@ -67,17 +68,67 @@ class GameLogic {
         } catch (error) {}
     }
 
-    // Blucle de joc (funció que s'executa contínuament)
-    updateGame(fps) {
-        let deltaTime = 1 / fps;
+    // Función para verificar si la nueva posición es válida
+isValidMove(x, y) {
+    // Convertir las coordenadas del jugador a índices de la cuadrícula
+    const gridX = Math.floor(x);  // x * 15 y redondeo hacia abajo
+    const gridY = Math.floor(y);  // y * 15 y redondeo hacia abajo
 
-        // Actualitzar la posició dels clients
-        this.players.forEach(client => {
-            let moveVector = DIRECTIONS[client.direction];
-            client.x = Math.max(0, Math.min(1, client.x + client.speed * moveVector.dx * deltaTime));
-            client.y = Math.max(0, Math.min(1, client.y + client.speed * moveVector.dy * deltaTime));
-        });
-    }
+    // Agregar un log para ver las coordenadas de la cuadrícula
+    console.log(`Posición del jugador en la cuadrícula: (${gridX}, ${gridY})`);
+
+    // Obtener las capas del mapa (suelo, muros, ladrillos)
+    const grassLayer = this.mapData.levels[0].layers[0].tileMap || [];
+    const wallsLayer = this.mapData.levels[0].layers[1].tileMap || [];
+    const bricksLayer = this.mapData.levels[0].layers[2].tileMap || [];
+
+    // Verificar que la nueva posición no colisione con muros o ladrillos
+    const isGrass = grassLayer[gridY][gridX] === 0 || grassLayer[gridY][gridX] === 1;
+    const isWall = wallsLayer[gridY][gridX] === 2;
+    const isBrick = bricksLayer[gridY][gridX] === 0; // -1 indica ladrillo
+
+    // Agregar logs para mostrar el estado de cada capa
+    console.log(`¿Es tierra? ${isGrass ? "Sí" : "No"}`);
+    console.log(`¿Es muro? ${isWall ? "Sí" : "No"}`);
+    console.log(`¿Es ladrillo? ${isBrick ? "Sí" : "No"}`);
+
+    // Permitir movimiento solo si la posición es suelo (0 o 1) y no es un muro ni un ladrillo
+    const validMove = isGrass && !isWall && !isBrick;
+    console.log(`Movimiento válido: ${validMove ? "Sí" : "No"}`);
+    return validMove;
+}
+
+// Función para actualizar el estado del juego
+updateGame(fps) {
+    const deltaTime = 35 / fps;  // Tiempo transcurrido entre fotogramas
+
+    // Actualizar la posición de los jugadores
+    this.players.forEach(client => {
+        console.log(client)
+        const moveVector = DIRECTIONS[client.direction];
+
+        // Calcular la nueva posición antes de mover
+        const newX = client.x + client.speed * moveVector.dx * deltaTime;
+        const newY = client.y + client.speed * moveVector.dy * deltaTime;
+
+        // Log de la nueva posición antes de mover
+        console.log(`Jugador ${client.id} - Nueva posición tentativa: (${newX}, ${newY})`);
+
+        // Verificar si la nueva posición es válida usando 'this.isValidMove'
+        if (this.isValidMove(newX, newY)) {
+            // Si es válida, mover al jugador
+            client.x = Math.max(0, Math.min(1, newX));  // Limitar el movimiento al rango [0, 1]
+            client.y = Math.max(0, Math.min(1, newY));  // Limitar el movimiento al rango [0, 1]
+
+            // Log de la nueva posición después del movimiento
+            console.log(`Jugador ${client.id} movido a: (${client.x}, ${client.y})`);
+        } else {
+            // Log si el movimiento no es válido
+            console.log(`Movimiento inválido para el jugador ${client.id}. No se movió.`);
+        }
+    });
+}
+
 
     // Funció para obtener la siguiente posición predefinida
     getNextPosition() {

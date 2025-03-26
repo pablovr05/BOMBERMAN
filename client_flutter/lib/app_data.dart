@@ -61,6 +61,7 @@ class AppData extends ChangeNotifier {
         if (playerId != null && gameState["players"] is List) {
           // Guardar les dades del propi jugador
           playerData = _getPlayerData(playerId);
+          print(playerData);
           mapData = _getMapData();
         }
         notifyListeners();
