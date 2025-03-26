@@ -43,6 +43,7 @@ ws.onClose = (socket, id) => {
 // **Game Loop**
 gameLoop.run = (fps) => {
     game.updateGame(fps);
+    console.log(JSON.stringify({ type: "update", gameState: game.getGameState() }, null, 2));
     ws.broadcast(JSON.stringify({ type: "update", gameState: game.getGameState() }));
 };
 gameLoop.start();

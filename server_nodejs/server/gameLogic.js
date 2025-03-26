@@ -102,28 +102,24 @@ isValidMove(x, y) {
 updateGame(fps) {
     const deltaTime = 35 / fps;  // Tiempo transcurrido entre fotogramas
 
-    // Actualizar la posición de los jugadores
     this.players.forEach(client => {
-        console.log(client)
+        console.log(client);
         const moveVector = DIRECTIONS[client.direction];
 
-        // Calcular la nueva posición antes de mover
+        // Calcular la nueva posición real
         const newX = client.x + client.speed * moveVector.dx * deltaTime;
         const newY = client.y + client.speed * moveVector.dy * deltaTime;
 
-        // Log de la nueva posición antes de mover
         console.log(`Jugador ${client.id} - Nueva posición tentativa: (${newX}, ${newY})`);
 
-        // Verificar si la nueva posición es válida usando 'this.isValidMove'
-        if (this.isValidMove(newX, newY)) {
-            // Si es válida, mover al jugador
-            client.x = Math.max(0, Math.min(1, newX));  // Limitar el movimiento al rango [0, 1]
-            client.y = Math.max(0, Math.min(1, newY));  // Limitar el movimiento al rango [0, 1]
+        // Verificar si la nueva posición es válida usando 'isValidMove' sin modificar la posición real
+        if (this.isValidMove(Math.floor(newX), Math.floor(newY))) {
+            // Si es válida, aplicar la nueva posición sin redondear
+            client.x = newX;
+            client.y = newY;
 
-            // Log de la nueva posición después del movimiento
             console.log(`Jugador ${client.id} movido a: (${client.x}, ${client.y})`);
         } else {
-            // Log si el movimiento no es válido
             console.log(`Movimiento inválido para el jugador ${client.id}. No se movió.`);
         }
     });

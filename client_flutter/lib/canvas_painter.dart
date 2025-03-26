@@ -55,8 +55,8 @@ class CanvasPainter extends CustomPainter {
           print("4");
           Offset pos = _serverToPainterCoords(
             Offset(
-              (player["x"] as num).toDouble() * 36,
-              (player["y"] as num).toDouble() * 36,
+              (player["x"] as num).toDouble(),
+              (player["y"] as num).toDouble(),
             ),
             painterSize,
           );
@@ -110,8 +110,8 @@ class CanvasPainter extends CustomPainter {
   // Convertir coordenadas del servidor a coordenadas de pintado
   Offset _serverToPainterCoords(Offset serverCoords, Size painterSize) {
     return Offset(
-      serverCoords.dx.toDouble(),
-      serverCoords.dy.toDouble(),
+      serverCoords.dx * painterSize.width / 15, // Ajuste basado en el mapa
+      serverCoords.dy * painterSize.height / 15,
     );
   }
 
