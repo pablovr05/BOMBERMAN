@@ -9,8 +9,11 @@ const POSITIONS = [
     { x: 1.5, y: 13.5 }
 ];
 
-const SPEED = 0.2;
+const SPEED = 0.075;
 const RADIUS = 0.01;
+
+const BOMBS = 1;
+const BOMB_POWER = 2;
 
 const DIRECTIONS = {
     "up": { dx: 0, dy: -1 },
@@ -40,7 +43,9 @@ class GameLogic {
             speed: SPEED,
             direction: "none",
             color,
-            radius: RADIUS
+            radius: RADIUS,
+            bombs: BOMBS,
+            bomb_power: BOMB_POWER,
         });
 
         return this.players.get(id);
