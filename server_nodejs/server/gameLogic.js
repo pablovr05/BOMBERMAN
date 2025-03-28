@@ -28,12 +28,13 @@ class GameLogic {
         this.players = new Map();
         this.mapData = this.loadMapData();
         this.nextSpawnIndex = 0;
+        this.bombs = []
     }
 
     // Es connecta un client/jugador
     addClient(id) {
         let pos = this.getNextPosition();
-        console.log(pos)
+        //console.log(pos)
         let color = this.getAvailableColor();
 
         this.players.set(id, {
@@ -56,7 +57,133 @@ class GameLogic {
         this.players.delete(id);
     }
 
-    // Tractar un missatge d'un client/jugador
+    updateBombs(fps) {
+        const currentTime = Date.now();
+        
+        // Iterar sobre las bombas activas
+        this.bombs.forEach((bomb, index) => {
+            // Calcular el tiempo transcurrido desde que se activó la bomba
+            const elapsedTime = (currentTime - bomb.timeStamp) / 1000; // en segundos
+    
+            // Actualizar el estado de la bomba cada 0.25 segundos (aproximadamente)
+            if (elapsedTime >= 0.25) {
+                bomb.timeStamp = currentTime; // Reiniciar el tiempo de la bomba
+                bomb.currentState++; // Incrementar el estado de la bomba
+    
+                if (bomb.currentState > 12) {
+                    // La bomba explota, marcar los efectos de la explosión
+                    this.explodeBomb(bomb);
+    
+                    // Eliminar la bomba de la lista
+                    this.bombs.splice(index, 1);
+                } else {
+                    // Actualizar el estado de la bomba en el mapa
+                    this.mapData.levels[0].layers[2].tileMap[bomb.y][bomb.x] = bomb.currentState;
+                    console.log(`Bomba en estado ${bomb.currentState} en: (${bomb.x}, ${bomb.y})`);
+                }
+            }
+        });
+    }
+    
+    explodeBomb(bomb) {
+        const bombX = bomb.x;
+        const bombY = bomb.y;
+        const bombPower = BOMB_POWER;  // Poder de la bomba (alcance de la explosión)
+        
+        // Direcciones de la explosión (arriba, abajo, izquierda, derecha)
+        const directions = [
+            { dx: 0, dy: -1 }, // Arriba
+            { dx: 0, dy: 1 },  // Abajo
+            { dx: -1, dy: 0 }, // Izquierda
+            { dx: 1, dy: 0 }   // Derecha
+        ];
+        
+        // Primero, marcar la casilla donde explotó la bomba
+        this.mapData.levels[0].layers[2].tileMap[bombY][bombX] = 13;  // Explosión en el centro
+        
+        // Explosión en las cuatro direcciones
+        directions.forEach(direction => {
+            let x = bombX;
+            let y = bombY;
+            
+            // Propagar la explosión hasta el alcance de la bomba (bombPower)
+            for (let i = 1; i <= bombPower; i++) {
+                x += direction.dx;
+                y += direction.dy;
+        
+                // Comprobar si las coordenadas están dentro de los límites del mapa
+                if (x < 0 || x >= this.mapData.levels[0].layers[2].tileMap[0].length || y < 0 || y >= this.mapData.levels[0].layers[2].tileMap.length) {
+                    break; // Si está fuera de los límites, detener la explosión
+                }
+        
+                // Verificar si hay un muro indestructible en la capa de muros (capa 1)
+                if (this.mapData.levels[0].layers[1].tileMap[y][x] === 2) {
+                    break;  // Si hay un muro indestructible, detener la propagación
+                }
+        
+                // Si encontramos un muro destructible (ladrillo o vacío), destruirlo
+                if (this.mapData.levels[0].layers[2].tileMap[y][x] === 0) {
+                    this.mapData.levels[0].layers[2].tileMap[y][x] = -1;  // Destruir el muro
+                    console.log(`Muro destruido en: (${x}, ${y})`);
+                    break;  // Solo destruir un muro en cada dirección
+                }
+        
+                // Si encontramos un ladrillo o vacío, marcarlo como parte de la explosión
+                if (this.mapData.levels[0].layers[2].tileMap[y][x] === -1 || this.mapData.levels[0].layers[2].tileMap[y][x] === 0) {
+                    this.mapData.levels[0].layers[2].tileMap[y][x] = 13;  // Marcar la explosión
+                }
+            }
+        });
+        
+        console.log(`La bomba explotó en: (${bombX}, ${bombY})`);
+        
+        // Luego de un corto tiempo, revertir las casillas marcadas como explosión (13) a -1
+        setTimeout(() => {
+            this.clearExplosion(bombX, bombY, bombPower);
+        }, 500);  // Revertir la explosión después de 500ms (medio segundo)
+    }
+    
+    
+    // Función para revertir la explosión
+    clearExplosion(bombX, bombY, bombPower) {
+        // Direcciones de la explosión (arriba, abajo, izquierda, derecha)
+        const directions = [
+            { dx: 0, dy: -1 }, // Arriba
+            { dx: 0, dy: 1 },  // Abajo
+            { dx: -1, dy: 0 }, // Izquierda
+            { dx: 1, dy: 0 }   // Derecha
+        ];
+        
+        // Primero, revertir el centro de la explosión
+        this.mapData.levels[0].layers[2].tileMap[bombY][bombX] = -1;  // Revertir la explosión en el centro
+        
+        // Revertir las explosiones en las cuatro direcciones
+        directions.forEach(direction => {
+            let x = bombX;
+            let y = bombY;
+            
+            // Propagar la reversión hasta el alcance de la bomba (bombPower)
+            for (let i = 1; i <= bombPower; i++) {
+                x += direction.dx;
+                y += direction.dy;
+    
+                // Comprobar si las coordenadas están dentro de los límites del mapa
+                if (x < 0 || x >= this.mapData.levels[0].layers[2].tileMap[0].length || y < 0 || y >= this.mapData.levels[0].layers[2].tileMap.length) {
+                    break; // Si está fuera de los límites, detener la explosión
+                }
+    
+                // Revertir la explosión en esas casillas
+                if (this.mapData.levels[0].layers[2].tileMap[y][x] === 13) {
+                    this.mapData.levels[0].layers[2].tileMap[y][x] = -1;  // Revertir la explosión a -1 (ladrillo o vacío)
+                }
+            }
+        });
+    
+        console.log(`La explosión fue revertida en: (${bombX}, ${bombY})`);
+    }
+    
+    
+    
     handleMessage(id, msg) {
         try {
             let obj = JSON.parse(msg);
@@ -65,13 +192,36 @@ class GameLogic {
                 case "direction":
                     if (this.players.has(id) && DIRECTIONS[obj.value]) {
                         this.players.get(id).direction = obj.value;
+                        if (obj.isSpace === true) {
+                            let posX = Math.floor(this.players.get(id).x);
+                            let posY = Math.floor(this.players.get(id).y);
+    
+                            // Comprobar si la posición es válida para poner una bomba
+                            if (this.mapData.levels[0].layers[2].tileMap[posY][posX] === -1) {
+                                console.log(`Se procede a poner una bomba en: ${posX},${posY}`);
+                                this.mapData.levels[0].layers[2].tileMap[posY][posX] = 3; // Estado inicial de la bomba
+                                
+                                // Guardar la bomba activa con el tiempo de inicio
+                                this.bombs.push({
+                                    x: posX,
+                                    y: posY,
+                                    currentState: 3,  // Estado inicial de la bomba
+                                    timeStamp: Date.now(), // Guardamos el tiempo actual
+                                });
+                            } else {
+                                console.log(`No se puede poner bomba, ya existe una en: ${posX}, ${posY}`);
+                            }
+                        }
                     }
                     break;
                 default:
                     break;
             }
-        } catch (error) {}
+        } catch (error) {
+            console.error("Error al manejar el mensaje:", error);
+        }
     }
+    
 
     // Función para verificar si la nueva posición es válida
 isValidMove(x, y) {
@@ -80,7 +230,7 @@ isValidMove(x, y) {
     const gridY = Math.floor(y);  // y * 15 y redondeo hacia abajo
 
     // Agregar un log para ver las coordenadas de la cuadrícula
-    console.log(`Posición del jugador en la cuadrícula: (${gridX}, ${gridY})`);
+    //console.log(`Posición del jugador en la cuadrícula: (${gridX}, ${gridY})`);
 
     // Obtener las capas del mapa (suelo, muros, ladrillos)
     const grassLayer = this.mapData.levels[0].layers[0].tileMap || [];
@@ -93,13 +243,13 @@ isValidMove(x, y) {
     const isBrick = bricksLayer[gridY][gridX] === 0; // -1 indica ladrillo
 
     // Agregar logs para mostrar el estado de cada capa
-    console.log(`¿Es tierra? ${isGrass ? "Sí" : "No"}`);
-    console.log(`¿Es muro? ${isWall ? "Sí" : "No"}`);
-    console.log(`¿Es ladrillo? ${isBrick ? "Sí" : "No"}`);
+    //console.log(`¿Es tierra? ${isGrass ? "Sí" : "No"}`);
+    //console.log(`¿Es muro? ${isWall ? "Sí" : "No"}`);
+    //console.log(`¿Es ladrillo? ${isBrick ? "Sí" : "No"}`);
 
     // Permitir movimiento solo si la posición es suelo (0 o 1) y no es un muro ni un ladrillo
     const validMove = isGrass && !isWall && !isBrick;
-    console.log(`Movimiento válido: ${validMove ? "Sí" : "No"}`);
+    //console.log(`Movimiento válido: ${validMove ? "Sí" : "No"}`);
     return validMove;
 }
 
@@ -108,26 +258,21 @@ updateGame(fps) {
     const deltaTime = 35 / fps;  // Tiempo transcurrido entre fotogramas
 
     this.players.forEach(client => {
-        console.log(client);
         const moveVector = DIRECTIONS[client.direction];
 
         // Calcular la nueva posición real
         const newX = client.x + client.speed * moveVector.dx * deltaTime;
         const newY = client.y + client.speed * moveVector.dy * deltaTime;
 
-        console.log(`Jugador ${client.id} - Nueva posición tentativa: (${newX}, ${newY})`);
-
         // Verificar si la nueva posición es válida usando 'isValidMove' sin modificar la posición real
         if (this.isValidMove(Math.floor(newX), Math.floor(newY))) {
-            // Si es válida, aplicar la nueva posición sin redondear
             client.x = newX;
             client.y = newY;
-
-            console.log(`Jugador ${client.id} movido a: (${client.x}, ${client.y})`);
-        } else {
-            console.log(`Movimiento inválido para el jugador ${client.id}. No se movió.`);
         }
     });
+
+    // Actualizar el estado de las bombas
+    this.updateBombs(fps);
 }
 
 

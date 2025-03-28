@@ -37,22 +37,17 @@ class CanvasPainter extends CustomPainter {
         }
       }
     } else {
-      print('⚠️ No se encontró mapa en appData'); // Mensaje si no hay mapa
+      //print('⚠️ No se encontró mapa en appData'); // Mensaje si no hay mapa
     }
-    print("1");
     if (gameState.isNotEmpty) {
-      print("2");
-      print(
-          '🧑‍🤝‍🧑 Jugadores encontrados. Procesando...'); // Mensaje en consola
+      //print('🧑‍🤝‍🧑 Jugadores encontrados. Procesando...'); // Mensaje en consola
       var players = gameState["players"];
       if (players != null) {
-        print("3");
         for (var player in players) {
-          print('👤 Procesando jugador: ${player["id"]}');
+          //print('👤 Procesando jugador: ${player["id"]}');
 
           // Mostrar en consola cada vez que se dibuja un jugador
           paint.color = _getColorFromString(player["color"]);
-          print("4");
           Offset pos = _serverToPainterCoords(
             Offset(
               (player["x"] as num).toDouble(),
@@ -61,20 +56,19 @@ class CanvasPainter extends CustomPainter {
             painterSize,
           );
 
-          print("5");
           double radius = _serverToPainterRadius(player["radius"], painterSize);
 
           // Mensaje indicando que se está dibujando el jugador
-          print(
-              '🎯 Dibujando jugador con ID: ${player["id"]} en posición: (${player["x"]}, ${player["y"]})');
-          print('🎨 Color del jugador: ${player["color"]}, radio: $radius');
-          print('📍 Posición en canvas: $pos');
+          //print(
+          //    '🎯 Dibujando jugador con ID: ${player["id"]} en posición: (${player["x"]}, ${player["y"]})');
+          //print('🎨 Color del jugador: ${player["color"]}, radio: $radius');
+          //print('📍 Posición en canvas: $pos');
 
           // Dibuja el jugador como un círculo
           canvas.drawCircle(pos, radius, paint);
         }
       } else {
-        print('⚠️ No se encontraron jugadores en el estado del juego');
+        //print('⚠️ No se encontraron jugadores en el estado del juego');
       }
 
       // Mostrar información del jugador y su ID
@@ -100,7 +94,7 @@ class CanvasPainter extends CustomPainter {
       paint.color = appData.isConnected ? Colors.green : Colors.red;
       canvas.drawCircle(Offset(painterSize.width - 10, 10), 5, paint);
     } else {
-      print('⚠️ No hay jugadores en el estado del juego');
+      //print('⚠️ No hay jugadores en el estado del juego');
     }
   }
 
@@ -149,7 +143,7 @@ class CanvasPainter extends CustomPainter {
 
     // Verificamos si la imagen está en el caché
     if (image == null) {
-      print('⚠️ No se encontró imagen en caché para la capa: ${layer.name}');
+      //print('⚠️ No se encontró imagen en caché para la capa: ${layer.name}');
       return;
     }
 

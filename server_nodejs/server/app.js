@@ -30,7 +30,7 @@ ws.onConnection = (socket, id) => {
 };
 
 ws.onMessage = (socket, id, msg) => {
-    if (debug) console.log(`New message from ${id}: ${msg.substring(0, 32)}...`);
+    //if (debug) console.log(`New message from ${id}: ${msg.substring(0, 32)}...`);
     game.handleMessage(id, msg);
 };
 
@@ -43,7 +43,7 @@ ws.onClose = (socket, id) => {
 // **Game Loop**
 gameLoop.run = (fps) => {
     game.updateGame(fps);
-    console.log(JSON.stringify({ type: "update", gameState: game.getGameState() }, null, 2));
+    //console.log(JSON.stringify({ type: "update", gameState: game.getGameState() }, null, 2));
     ws.broadcast(JSON.stringify({ type: "update", gameState: game.getGameState() }));
 };
 gameLoop.start();

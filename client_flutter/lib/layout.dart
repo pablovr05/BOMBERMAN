@@ -22,6 +22,9 @@ class _LayoutState extends State<Layout> {
   Future<void> _loadImages() async {
     imagesCache['grass.png'] = await _loadImage('assets/grass.png');
     imagesCache['wall.png'] = await _loadImage('assets/wall.png');
+    imagesCache['dynmamite_pack.png'] =
+        await _loadImage('assets/dynmamite_pack.png');
+    imagesCache['explosion.png'] = await _loadImage('assets/explosion.png');
   }
 
   // Helper function to load images from assets
@@ -31,14 +34,20 @@ class _LayoutState extends State<Layout> {
     return await decodeImageFromList(bytes);
   }
 
-  // Tractar què passa quan el jugador apreta una tecla
   void _onKeyEvent(KeyEvent event, AppData appData) {
     String key = event.logicalKey.keyLabel.toLowerCase();
 
-    if (key.contains(" ")) {
-      key = key.split(" ")[1];
-    } else {
-      return;
+    // Detectar teclas específicas manualmente
+    if (event.logicalKey == LogicalKeyboardKey.space) {
+      key = "space";
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      key = "up";
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      key = "down";
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      key = "left";
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      key = "right";
     }
 
     if (event is KeyDownEvent) {
@@ -47,9 +56,17 @@ class _LayoutState extends State<Layout> {
       _pressedKeys.remove(key);
     }
 
-    // Enviar la direcció escollida pel jugador al servidor
-    var direction = _getDirectionFromKeys();
-    appData.sendMessage(jsonEncode({"type": "direction", "value": direction}));
+    // Enviar la dirección y espacio al servidor
+    String direction = _getDirectionFromKeys();
+    bool isSpace = _getSpaceFromKeys();
+    print("Dirección: $direction, Espacio: $isSpace");
+
+    appData.sendMessage(jsonEncode(
+        {"type": "direction", "value": direction, "isSpace": isSpace}));
+  }
+
+  bool _getSpaceFromKeys() {
+    return _pressedKeys.contains("space");
   }
 
   String _getDirectionFromKeys() {
@@ -58,12 +75,13 @@ class _LayoutState extends State<Layout> {
     bool left = _pressedKeys.contains("left");
     bool right = _pressedKeys.contains("right");
 
-    if (up) return "up";
-    if (down) return "down";
-    if (left) return "left";
-    if (right) return "right";
+    List<String> directions = [];
+    if (up) directions.add("up");
+    if (down) directions.add("down");
+    if (left) directions.add("left");
+    if (right) directions.add("right");
 
-    return "none";
+    return directions.isNotEmpty ? directions.join("-") : "none";
   }
 
   @override
