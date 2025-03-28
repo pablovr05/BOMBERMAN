@@ -65,6 +65,8 @@ class AppData extends ChangeNotifier {
           mapData = _getMapData();
         }
         notifyListeners();
+      } else if (data["type"] == "explosionHit") {
+        print(message);
       }
     } catch (e) {
       if (kDebugMode) {

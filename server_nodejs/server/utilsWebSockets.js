@@ -78,6 +78,15 @@ class Obj {
         })
     }
 
+    
+    // Enviar un mensaje a un cliente específico
+    sendMessage(ws, msg) {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(msg.toString());
+        }
+    }
+
+
     // A message is received from a websocket client
     newMessage(ws, id, bufferedMessage) {
         var messageAsString = bufferedMessage.toString()

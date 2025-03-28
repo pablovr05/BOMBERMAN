@@ -8,7 +8,7 @@ const port = process.env.PORT || 8888;
 
 // Inicialitzar WebSockets i la lògica del joc
 const ws = new webSockets();
-const game = new GameLogic();
+const game = new GameLogic(ws);
 let gameLoop = new GameLoop();
 
 // Inicialitzar servidor Express
@@ -26,7 +26,7 @@ ws.init(httpServer, port);
 
 ws.onConnection = (socket, id) => {
     if (debug) console.log("WebSocket client connected: " + id);
-    game.addClient(id);
+    game.addClient(id, socket);
 };
 
 ws.onMessage = (socket, id, msg) => {

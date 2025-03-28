@@ -24,19 +24,19 @@ const DIRECTIONS = {
 };
 
 class GameLogic {
-    constructor() {
+    constructor(ws) {
+        this.ws = ws;
         this.players = new Map();
         this.mapData = this.loadMapData();
         this.nextSpawnIndex = 0;
         this.bombs = []
     }
 
-    // Es connecta un client/jugador
-    addClient(id) {
+    addClient(id, ws) {
         let pos = this.getNextPosition();
-        //console.log(pos)
         let color = this.getAvailableColor();
-
+    
+        // Asociar el WebSocket con el ID del jugador
         this.players.set(id, {
             id,
             x: pos.x,
@@ -47,10 +47,12 @@ class GameLogic {
             radius: RADIUS,
             bombs: BOMBS,
             bomb_power: BOMB_POWER,
+            ws: ws,  // Aquí estamos almacenando el WebSocket del jugador
         });
-
+    
         return this.players.get(id);
     }
+    
 
     // Es desconnecta un client/jugador
     removeClient(id) {
@@ -88,59 +90,77 @@ class GameLogic {
     explodeBomb(bomb) {
         const bombX = bomb.x;
         const bombY = bomb.y;
-        const bombPower = BOMB_POWER;  // Poder de la bomba (alcance de la explosión)
-        
-        // Direcciones de la explosión (arriba, abajo, izquierda, derecha)
+        const bombPower = BOMB_POWER;  
+    
         const directions = [
             { dx: 0, dy: -1 }, // Arriba
             { dx: 0, dy: 1 },  // Abajo
             { dx: -1, dy: 0 }, // Izquierda
             { dx: 1, dy: 0 }   // Derecha
         ];
-        
-        // Primero, marcar la casilla donde explotó la bomba
-        this.mapData.levels[0].layers[2].tileMap[bombY][bombX] = 13;  // Explosión en el centro
-        
-        // Explosión en las cuatro direcciones
+    
+        let explosionTiles = [{ x: bombX, y: bombY }]; // Guardamos todas las casillas afectadas
+    
+        // Marcar el centro de la explosión
+        this.mapData.levels[0].layers[2].tileMap[bombY][bombX] = 13;
+    
+        // Expandir la explosión en las direcciones
         directions.forEach(direction => {
             let x = bombX;
             let y = bombY;
-            
-            // Propagar la explosión hasta el alcance de la bomba (bombPower)
+    
             for (let i = 1; i <= bombPower; i++) {
                 x += direction.dx;
                 y += direction.dy;
-        
-                // Comprobar si las coordenadas están dentro de los límites del mapa
+    
                 if (x < 0 || x >= this.mapData.levels[0].layers[2].tileMap[0].length || y < 0 || y >= this.mapData.levels[0].layers[2].tileMap.length) {
-                    break; // Si está fuera de los límites, detener la explosión
+                    break;
                 }
-        
-                // Verificar si hay un muro indestructible en la capa de muros (capa 1)
+    
                 if (this.mapData.levels[0].layers[1].tileMap[y][x] === 2) {
-                    break;  // Si hay un muro indestructible, detener la propagación
+                    break;  
                 }
-        
-                // Si encontramos un muro destructible (ladrillo o vacío), destruirlo
+    
                 if (this.mapData.levels[0].layers[2].tileMap[y][x] === 0) {
-                    this.mapData.levels[0].layers[2].tileMap[y][x] = -1;  // Destruir el muro
-                    console.log(`Muro destruido en: (${x}, ${y})`);
-                    break;  // Solo destruir un muro en cada dirección
+                    this.mapData.levels[0].layers[2].tileMap[y][x] = -1;
+                    break;  
                 }
-        
-                // Si encontramos un ladrillo o vacío, marcarlo como parte de la explosión
-                if (this.mapData.levels[0].layers[2].tileMap[y][x] === -1 || this.mapData.levels[0].layers[2].tileMap[y][x] === 0) {
-                    this.mapData.levels[0].layers[2].tileMap[y][x] = 13;  // Marcar la explosión
+    
+                this.mapData.levels[0].layers[2].tileMap[y][x] = 13;
+                explosionTiles.push({ x, y }); // Guardamos la casilla afectada
+            }
+        });
+    
+        console.log(`La bomba explotó en: (${bombX}, ${bombY})`);
+    
+        // Verificar si algún jugador está en la zona de explosión
+        this.checkPlayersHit(explosionTiles);
+    
+        // Revertir la explosión después de un tiempo
+        setTimeout(() => {
+            this.clearExplosion(bombX, bombY, bombPower);
+        }, 500);
+    }
+    
+    checkPlayersHit(explosionTiles) {
+        this.players.forEach((player, playerId) => {
+            let playerX = Math.floor(player.x);
+            let playerY = Math.floor(player.y);
+    
+            // Comprobar si la posición del jugador está en la lista de explosión
+            if (explosionTiles.some(tile => tile.x === playerX && tile.y === playerY)) {
+                console.log(`¡Jugador ${playerId} fue alcanzado por la explosión en (${playerX}, ${playerY})!`);
+                let ws = player.ws;
+                console.log(ws)
+                if (ws) {
+                    // Enviar un mensaje al jugador
+                    ws.send(JSON.stringify({
+                        type: "explosionHit",
+                        message: `¡Fuiste alcanzado por la explosión!`
+                    }));
                 }
             }
         });
-        
-        console.log(`La bomba explotó en: (${bombX}, ${bombY})`);
-        
-        // Luego de un corto tiempo, revertir las casillas marcadas como explosión (13) a -1
-        setTimeout(() => {
-            this.clearExplosion(bombX, bombY, bombPower);
-        }, 500);  // Revertir la explosión después de 500ms (medio segundo)
     }
     
     
