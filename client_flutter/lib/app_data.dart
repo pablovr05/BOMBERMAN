@@ -50,27 +50,52 @@ class AppData extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Tractar un missatge rebut des del servidor
   void _onWebSocketMessage(String message) {
     try {
       var data = jsonDecode(message);
       if (data["type"] == "update") {
-        // Guardar les dades de l'estat de la partida
+        // Guardar las datos de estado del juego
         gameState = {}..addAll(data["gameState"]);
         String? playerId = _wsHandler.socketId;
         if (playerId != null && gameState["players"] is List) {
-          // Guardar les dades del propi jugador
+          // Guardar las datos del propio jugador
           playerData = _getPlayerData(playerId);
-          //print(playerData);
           mapData = _getMapData();
         }
         notifyListeners();
+      } else if (data["type"] == "playerDirection") {
+        // Actualizar las direcciones del jugador solo si cambia
+        String playerId = data["playerId"];
+        String direction = data["direction"];
+
+        if (playerData != null && playerData["id"] == playerId) {
+          // Si la dirección ya es la misma, no actualizamos
+          if (playerData["currentDirection"] != direction) {
+            playerData["currentDirection"] = direction;
+
+            // Si las direcciones es null, inicializarlas como una lista
+            if (playerData["directions"] == null) {
+              playerData["directions"] = [];
+            }
+            playerData["directions"]
+                .add(direction); // Guardar la nueva dirección
+
+            // Imprimir para ver el resultado
+            print("Jugador $playerId va a la dirección: $direction");
+
+            // Notificar los cambios
+            notifyListeners();
+          } else {
+            // Imprimir que la dirección no ha cambiado
+            print("La dirección de $playerId no ha cambiado.");
+          }
+        }
       } else if (data["type"] == "explosionHit") {
         print(message);
       }
     } catch (e) {
       if (kDebugMode) {
-        print("Error processant missatge WebSocket: $e");
+        print("Error procesando mensaje WebSocket: $e");
       }
     }
   }
@@ -118,10 +143,15 @@ class AppData extends ChangeNotifier {
 
   // Filtrar les dades del propi jugador (fent servir l'id de player)
   dynamic _getPlayerData(String playerId) {
-    return (gameState["players"] as List).firstWhere(
+    var player = (gameState["players"] as List).firstWhere(
       (player) => player["id"] == playerId,
       orElse: () => {},
     );
+    // Si el jugador existeix, afegir un camp "directions" buit
+    if (player.isNotEmpty) {
+      player["directions"] = [];
+    }
+    return player;
   }
 
   // Asumiendo que tienes un archivo JSON o alguna fuente de datos para GameData

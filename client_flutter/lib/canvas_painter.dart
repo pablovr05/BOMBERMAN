@@ -2,12 +2,49 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'app_data.dart';
 import 'game_data.dart';
+import 'package:flutter/services.dart'; // Para rootBundle
+import 'SpriteSheet.dart';
+
+class SpriteAnimation {
+  final SpriteSheet spriteSheet;
+  final double frameDuration;
+  int _currentFrame = 0;
+  double _elapsedTime = 0.0;
+
+  SpriteAnimation(this.spriteSheet, {this.frameDuration = 0.1});
+
+  void update(double deltaTime) {
+    _elapsedTime += deltaTime;
+    if (_elapsedTime >= frameDuration) {
+      _elapsedTime = 0.0;
+      _currentFrame =
+          (_currentFrame + 1) % (spriteSheet.rows * spriteSheet.columns);
+    }
+  }
+
+  ui.Rect get currentFrame {
+    int row = _currentFrame ~/ spriteSheet.columns;
+    int column = _currentFrame % spriteSheet.columns;
+    return spriteSheet.getFrame(row, column);
+  }
+}
 
 class CanvasPainter extends CustomPainter {
   final AppData appData;
   final Map<String, ui.Image> imagesCache;
+  late SpriteAnimation spriteAnimation;
 
-  CanvasPainter(this.appData, this.imagesCache);
+  CanvasPainter(this.appData, this.imagesCache) {
+    // Inicializar la animación con la imagen y las filas/columnas adecuadas
+    ui.Image spriteSheetImage =
+        imagesCache["walk-front.png"]!; // Ejemplo con un sprite sheet
+    SpriteSheet spriteSheet = SpriteSheet(
+      image: spriteSheetImage,
+      rows: 1, // Número de filas en el sprite sheet (ejemplo)
+      columns: 4, // Número de columnas en el sprite sheet (ejemplo)
+    );
+    spriteAnimation = SpriteAnimation(spriteSheet);
+  }
 
   @override
   void paint(Canvas canvas, Size painterSize) {
@@ -32,21 +69,17 @@ class CanvasPainter extends CustomPainter {
 
         for (var layer in sortedLayers) {
           if (layer.visible) {
-            _drawLayer(canvas, layer);
+            _drawLayer(canvas, layer, painterSize);
           }
         }
       }
-    } else {
-      //print('⚠️ No se encontró mapa en appData'); // Mensaje si no hay mapa
     }
+
     if (gameState.isNotEmpty) {
-      //print('🧑‍🤝‍🧑 Jugadores encontrados. Procesando...'); // Mensaje en consola
+      // Dibuja los jugadores
       var players = gameState["players"];
       if (players != null) {
         for (var player in players) {
-          //print('👤 Procesando jugador: ${player["id"]}');
-
-          // Mostrar en consola cada vez que se dibuja un jugador
           paint.color = _getColorFromString(player["color"]);
           Offset pos = _serverToPainterCoords(
             Offset(
@@ -56,24 +89,60 @@ class CanvasPainter extends CustomPainter {
             painterSize,
           );
 
-          double radius = _serverToPainterRadius(player["radius"], painterSize);
+          // Obtener las direcciones del jugador, si no hay direcciones, usar "idle"
+          String direction = "idle"; // Dirección por defecto
 
-          // Mensaje indicando que se está dibujando el jugador
-          //print(
-          //    '🎯 Dibujando jugador con ID: ${player["id"]} en posición: (${player["x"]}, ${player["y"]})');
-          //print('🎨 Color del jugador: ${player["color"]}, radio: $radius');
-          //print('📍 Posición en canvas: $pos');
+          // Verificar si las direcciones son una lista y tomar el primer valor
+          if (appData.playerData["directions"] != null) {
+            if (appData.playerData["directions"] is List) {
+              var directionsList = appData.playerData["directions"];
+              if (directionsList.isNotEmpty) {
+                direction =
+                    directionsList[0]; // Tomar la primera dirección de la lista
+              }
+            } else if (appData.playerData["directions"] is String) {
+              direction =
+                  appData.playerData["directions"]; // Usar el valor directo
+            }
+          }
 
-          // Dibuja el jugador como un círculo
-          canvas.drawCircle(pos, radius, paint);
+          // Usamos la imagen correspondiente según la dirección
+          ui.Image? playerImage = _getPlayerImageForDirection(direction);
+
+          if (playerImage != null) {
+            double width = 32.0; // Ancho de la imagen
+            double height = 32.0; // Alto de la imagen
+
+            // Dibujamos la imagen del jugador (ajusta el tamaño si es necesario)
+            spriteAnimation.update(0.1); // Actualizamos la animación de sprites
+
+            // Obtener el rectángulo correspondiente al frame actual de la animación
+            ui.Rect frame = spriteAnimation.currentFrame;
+
+            canvas.drawImageRect(
+              playerImage,
+              frame,
+              Rect.fromLTWH(
+                  pos.dx - width / 2, pos.dy - height / 2, width, height),
+              paint,
+            );
+          } else {
+            print('🚨 Imagen no disponible para la dirección: $direction');
+          }
         }
-      } else {
-        //print('⚠️ No se encontraron jugadores en el estado del juego');
       }
 
       // Mostrar información del jugador y su ID
-      String playerId = appData.playerData["id"];
-      Color playerColor = _getColorFromString(appData.playerData["color"]);
+      String playerId = appData.playerData["id"] ?? "Unknown";
+
+      // Imprimir las direcciones de `playerData` para verlas en consola
+      if (appData.playerData["directions"] != null) {
+        print(
+            '🚨 Direcciones del jugador: ${appData.playerData["directions"]}');
+      }
+
+      Color playerColor =
+          _getColorFromString(appData.playerData["color"] ?? "black");
       final paragraphStyle = ui.ParagraphStyle(
         textDirection: TextDirection.ltr,
       );
@@ -93,9 +162,43 @@ class CanvasPainter extends CustomPainter {
       // Mostrar el círculo de conexión (esquina superior derecha)
       paint.color = appData.isConnected ? Colors.green : Colors.red;
       canvas.drawCircle(Offset(painterSize.width - 10, 10), 5, paint);
-    } else {
-      //print('⚠️ No hay jugadores en el estado del juego');
     }
+  }
+
+  // Método para obtener la imagen del jugador según la dirección
+  ui.Image? _getPlayerImageForDirection(String direction) {
+    String imageName;
+    print(direction);
+    // Dependiendo de la dirección, seleccionamos la imagen correspondiente
+    switch (direction.toLowerCase()) {
+      case "up":
+        imageName = "walk-back.png";
+        break;
+      case "down":
+        imageName = "walk-front.png";
+        break;
+      case "left":
+        imageName = "walk-left.png";
+        break;
+      case "right":
+        imageName = "walk-right.png";
+        break;
+      case "idle":
+      default:
+        imageName =
+            "idle-front.png"; // Dirección por defecto cuando está en idle
+        break;
+    }
+
+    // Verificar si la imagen está en el caché
+    ui.Image? playerImage = imagesCache[imageName];
+    if (playerImage == null) {
+      print('🚨 No se encuentra la imagen: $imageName');
+    } else {
+      print('✔️ Imagen cargada: $imageName');
+      print('Tamaño de la imagen: ${playerImage.width}x${playerImage.height}');
+    }
+    return playerImage;
   }
 
   @override
@@ -130,7 +233,8 @@ class CanvasPainter extends CustomPainter {
     }
   }
 
-  void _drawLayer(Canvas canvas, Layer layer) {
+  // Dibujar las capas del mapa
+  void _drawLayer(Canvas canvas, Layer layer, Size painterSize) {
     final image = imagesCache[layer.tilesSheetFile];
 
     // Añadir un factor de escala
@@ -143,7 +247,8 @@ class CanvasPainter extends CustomPainter {
 
     // Verificamos si la imagen está en el caché
     if (image == null) {
-      //print('⚠️ No se encontró imagen en caché para la capa: ${layer.name}');
+      print(
+          '🚨 No se encuentra la imagen para la capa: ${layer.tilesSheetFile}');
       return;
     }
 

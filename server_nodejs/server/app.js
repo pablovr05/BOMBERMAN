@@ -31,7 +31,7 @@ ws.onConnection = (socket, id) => {
 
 ws.onMessage = (socket, id, msg) => {
     //if (debug) console.log(`New message from ${id}: ${msg.substring(0, 32)}...`);
-    game.handleMessage(id, msg);
+    game.handleMessage(id, msg, socket);
 };
 
 ws.onClose = (socket, id) => {

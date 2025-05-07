@@ -204,14 +204,19 @@ class GameLogic {
     
     
     
-    handleMessage(id, msg) {
+    handleMessage(id, msg, socket) {
         try {
             let obj = JSON.parse(msg);
             if (!obj.type) return;
             switch (obj.type) {
                 case "direction":
                     if (this.players.has(id) && DIRECTIONS[obj.value]) {
+                        // Actualiza la dirección del jugador
                         this.players.get(id).direction = obj.value;
+    
+                        // Llama a la función para hacer el broadcast de la dirección
+                        this.broadcastDirection(id, obj.value);
+    
                         if (obj.isSpace === true) {
                             let posX = Math.floor(this.players.get(id).x);
                             let posY = Math.floor(this.players.get(id).y);
@@ -220,7 +225,7 @@ class GameLogic {
                             if (this.mapData.levels[0].layers[2].tileMap[posY][posX] === -1) {
                                 console.log(`Se procede a poner una bomba en: ${posX},${posY}`);
                                 this.mapData.levels[0].layers[2].tileMap[posY][posX] = 3; // Estado inicial de la bomba
-                                
+    
                                 // Guardar la bomba activa con el tiempo de inicio
                                 this.bombs.push({
                                     x: posX,
@@ -241,8 +246,18 @@ class GameLogic {
             console.error("Error al manejar el mensaje:", error);
         }
     }
-    
 
+    broadcastDirection(playerId, direction) {
+        const message = JSON.stringify({
+            type: "playerDirection",
+            playerId: playerId,
+            direction: direction
+        });
+    
+        // Llamamos a la función 'broadcast' para enviar el mensaje a todos los clientes
+        this.ws.broadcast(message)
+    }
+        
     // Función para verificar si la nueva posición es válida
 isValidMove(x, y) {
     // Convertir las coordenadas del jugador a índices de la cuadrícula

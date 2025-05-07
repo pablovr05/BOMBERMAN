@@ -22,6 +22,11 @@ class _LayoutState extends State<Layout> {
   Future<void> _loadImages() async {
     imagesCache['grass.png'] = await _loadImage('assets/grass.png');
     imagesCache['wall.png'] = await _loadImage('assets/wall.png');
+    imagesCache['walk-back.png'] = await _loadImage('assets/walk-back.png');
+    imagesCache['walk-front.png'] = await _loadImage('assets/walk-front.png');
+    imagesCache['walk-left.png'] = await _loadImage('assets/walk-left.png');
+    imagesCache['walk-right.png'] = await _loadImage('assets/walk-right.png');
+    imagesCache['idle-front.png'] = await _loadImage('assets/idle-front.png');
     imagesCache['dynmamite_pack.png'] =
         await _loadImage('assets/dynmamite_pack.png');
     imagesCache['explosion.png'] = await _loadImage('assets/explosion.png');

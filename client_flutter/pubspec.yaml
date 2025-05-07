@@ -85,6 +85,14 @@ flutter:
   assets:
   - assets/grass.png
   - assets/wall.png
+  - assets/idle-front.png
+  - assets/walk-back.png
+  - assets/walk-front.png
+  - assets/walk-left.png
+  - assets/walk-right.png
+  - assets/
+
+
   
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
