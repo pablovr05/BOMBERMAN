@@ -21,6 +21,9 @@ class AppData extends ChangeNotifier {
   dynamic playerData;
   dynamic mapData;
 
+  // Diccionario para almacenar la última dirección de cada jugador
+  Map<String, String> playerDirections = {};
+
   AppData() {
     _connectToWebSocket();
   }
@@ -53,6 +56,7 @@ class AppData extends ChangeNotifier {
   void _onWebSocketMessage(String message) {
     try {
       var data = jsonDecode(message);
+
       if (data["type"] == "update") {
         // Guardar las datos de estado del juego
         gameState = {}..addAll(data["gameState"]);
@@ -69,29 +73,30 @@ class AppData extends ChangeNotifier {
         String direction = data["direction"];
 
         if (playerData != null && playerData["id"] == playerId) {
-          // Si la dirección ya es la misma, no actualizamos
-          if (playerData["currentDirection"] != direction) {
-            playerData["currentDirection"] = direction;
+          // No actualizamos si la dirección es 'none'
+          if (direction != "none") {
+            // Actualizamos la dirección en el diccionario de direcciones
+            playerDirections[playerId] = direction;
 
-            // Si las direcciones es null, inicializarlas como una lista
+            // Si la dirección es null o vacía, inicializarla como una lista
             if (playerData["directions"] == null) {
               playerData["directions"] = [];
             }
-            playerData["directions"]
-                .add(direction); // Guardar la nueva dirección
 
-            // Imprimir para ver el resultado
-            print("Jugador $playerId va a la dirección: $direction");
-
-            // Notificar los cambios
-            notifyListeners();
-          } else {
-            // Imprimir que la dirección no ha cambiado
-            print("La dirección de $playerId no ha cambiado.");
+            // Agregar la nueva dirección siempre que no sea "none"
+            playerData["directions"].add(direction);
           }
+          notifyListeners();
         }
       } else if (data["type"] == "explosionHit") {
-        print(message);
+        String playerId = data["playerId"];
+        // Actualiza el estado del jugador si es este quien ha sido alcanzado
+        if (playerData != null && playerData["id"] == playerId) {
+          playerData["isDead"] = true; // Marca al jugador como perdido
+          notifyListeners(); // Notifica a la UI que el jugador ha perdido
+        }
+
+        print("¡Jugador $playerId ha sido alcanzado por una explosión!");
       }
     } catch (e) {
       if (kDebugMode) {
@@ -147,10 +152,18 @@ class AppData extends ChangeNotifier {
       (player) => player["id"] == playerId,
       orElse: () => {},
     );
-    // Si el jugador existeix, afegir un camp "directions" buit
+
     if (player.isNotEmpty) {
-      player["directions"] = [];
+      // Si ya tenemos playerData anterior, las conservamos
+      if (playerData != null &&
+          playerData["id"] == playerId &&
+          playerData["directions"] != null) {
+        player["directions"] = List.from(playerData["directions"]);
+      } else {
+        player["directions"] = [];
+      }
     }
+
     return player;
   }
 

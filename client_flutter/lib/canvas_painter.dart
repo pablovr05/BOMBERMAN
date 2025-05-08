@@ -32,26 +32,47 @@ class SpriteAnimation {
 class CanvasPainter extends CustomPainter {
   final AppData appData;
   final Map<String, ui.Image> imagesCache;
-  late SpriteAnimation spriteAnimation;
+  late SpriteAnimation spriteAnimationUp;
+  late SpriteAnimation spriteAnimationDown;
+  late SpriteAnimation spriteAnimationLeft;
+  late SpriteAnimation spriteAnimationRight;
+  String _lastValidDirection = "left"; // Dirección predeterminada
+  String playerId = ""; // Ahora está declarado antes de ser utilizado
 
   CanvasPainter(this.appData, this.imagesCache) {
-    // Inicializar la animación con la imagen y las filas/columnas adecuadas
-    ui.Image spriteSheetImage =
-        imagesCache["walk-front.png"]!; // Ejemplo con un sprite sheet
-    SpriteSheet spriteSheet = SpriteSheet(
-      image: spriteSheetImage,
-      rows: 1, // Número de filas en el sprite sheet (ejemplo)
-      columns: 4, // Número de columnas en el sprite sheet (ejemplo)
-    );
-    spriteAnimation = SpriteAnimation(spriteSheet);
+    // Cargar diferentes hojas de sprites para cada dirección
+    ui.Image walkFront = imagesCache["walk-front.png"]!;
+    ui.Image walkBack = imagesCache["walk-back.png"]!;
+    ui.Image walkLeft = imagesCache["walk-left.png"]!;
+    ui.Image walkRight = imagesCache["walk-right.png"]!;
+
+    // Crear animaciones para cada dirección
+    spriteAnimationUp =
+        SpriteAnimation(SpriteSheet(image: walkBack, rows: 1, columns: 4));
+    spriteAnimationDown =
+        SpriteAnimation(SpriteSheet(image: walkFront, rows: 1, columns: 4));
+    spriteAnimationLeft =
+        SpriteAnimation(SpriteSheet(image: walkLeft, rows: 1, columns: 4));
+    spriteAnimationRight =
+        SpriteAnimation(SpriteSheet(image: walkRight, rows: 1, columns: 4));
   }
 
   @override
   void paint(Canvas canvas, Size painterSize) {
-    final paint = Paint();
-    paint.color = Colors.white;
+    final paint = Paint()..color = Colors.white;
 
-    // Dibuja el fondo blanco
+    // Si el jugador está muerto, pintar toda la pantalla en gris o negro
+    if (appData.playerData["isDead"] == true) {
+      // Dibujar una capa gris/negra sobre toda la pantalla
+      paint.color = Colors.black.withOpacity(0.7); // Color negro con opacidad
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, painterSize.width, painterSize.height),
+        paint,
+      );
+      return; // Si está muerto, no dibujamos nada más
+    }
+
+    // Si el jugador no está muerto, sigue con el dibujo normal
     canvas.drawRect(
       Rect.fromLTWH(0, 0, painterSize.width, painterSize.height),
       paint,
@@ -60,12 +81,10 @@ class CanvasPainter extends CustomPainter {
     var gameState = appData.gameState;
     var mapData = appData.mapData;
 
-    // Dibuja el mapa y niveles
     if (mapData != null) {
       for (var level in mapData.levels) {
         var sortedLayers = List<Layer>.from(level.layers);
-        sortedLayers.sort(
-            (a, b) => a.depth.compareTo(b.depth)); // Ordenar por profundidad
+        sortedLayers.sort((a, b) => a.depth.compareTo(b.depth));
 
         for (var layer in sortedLayers) {
           if (layer.visible) {
@@ -76,10 +95,15 @@ class CanvasPainter extends CustomPainter {
     }
 
     if (gameState.isNotEmpty) {
-      // Dibuja los jugadores
       var players = gameState["players"];
       if (players != null) {
         for (var player in players) {
+          // Si el jugador está muerto, no lo dibujamos
+          if (player["id"] == appData.playerData["id"] &&
+              player["isDead"] == true) {
+            continue; // Salimos del bucle y no dibujamos el jugador
+          }
+
           paint.color = _getColorFromString(player["color"]);
           Offset pos = _serverToPainterCoords(
             Offset(
@@ -89,87 +113,82 @@ class CanvasPainter extends CustomPainter {
             painterSize,
           );
 
-          // Obtener las direcciones del jugador, si no hay direcciones, usar "idle"
-          String direction = "idle"; // Dirección por defecto
+          // Obtener dirección actual desde playerDirections usando la playerId
+          String direction =
+              appData.playerDirections[player["id"]] ?? _lastValidDirection;
 
-          // Verificar si las direcciones son una lista y tomar el primer valor
-          if (appData.playerData["directions"] != null) {
-            if (appData.playerData["directions"] is List) {
-              var directionsList = appData.playerData["directions"];
-              if (directionsList.isNotEmpty) {
-                direction =
-                    directionsList[0]; // Tomar la primera dirección de la lista
-              }
-            } else if (appData.playerData["directions"] is String) {
-              direction =
-                  appData.playerData["directions"]; // Usar el valor directo
-            }
+          // Si la dirección es válida, actualizamos la dirección
+          if (direction.isNotEmpty && direction != "none") {
+            _lastValidDirection = direction;
           }
 
-          // Usamos la imagen correspondiente según la dirección
-          ui.Image? playerImage = _getPlayerImageForDirection(direction);
+          // Actualizamos la animación dependiendo de la dirección
+          SpriteAnimation currentAnimation;
 
-          if (playerImage != null) {
-            double width = 32.0; // Ancho de la imagen
-            double height = 32.0; // Alto de la imagen
-
-            // Dibujamos la imagen del jugador (ajusta el tamaño si es necesario)
-            spriteAnimation.update(0.1); // Actualizamos la animación de sprites
-
-            // Obtener el rectángulo correspondiente al frame actual de la animación
-            ui.Rect frame = spriteAnimation.currentFrame;
-
-            canvas.drawImageRect(
-              playerImage,
-              frame,
-              Rect.fromLTWH(
-                  pos.dx - width / 2, pos.dy - height / 2, width, height),
-              paint,
-            );
-          } else {
-            print('🚨 Imagen no disponible para la dirección: $direction');
+          switch (_lastValidDirection.toLowerCase()) {
+            case "up":
+              currentAnimation = spriteAnimationUp;
+              break;
+            case "down":
+              currentAnimation = spriteAnimationDown;
+              break;
+            case "left":
+              currentAnimation = spriteAnimationLeft;
+              break;
+            case "right":
+              currentAnimation = spriteAnimationRight;
+              break;
+            default:
+              currentAnimation =
+                  spriteAnimationDown; // Dirección predeterminada
           }
+
+          // Actualizamos el cuadro de la animación
+          currentAnimation.update(0.1);
+          ui.Rect frame = currentAnimation.currentFrame;
+
+          double width = 32.0;
+          double height = 32.0;
+
+          canvas.drawImageRect(
+            _getPlayerImageForDirection(_lastValidDirection)!,
+            frame,
+            Rect.fromLTWH(
+              pos.dx - width / 2,
+              pos.dy - height / 2,
+              width,
+              height,
+            ),
+            paint,
+          );
         }
       }
 
-      // Mostrar información del jugador y su ID
-      String playerId = appData.playerData["id"] ?? "Unknown";
-
-      // Imprimir las direcciones de `playerData` para verlas en consola
-      if (appData.playerData["directions"] != null) {
-        print(
-            '🚨 Direcciones del jugador: ${appData.playerData["directions"]}');
-      }
-
+      playerId = appData.playerData["id"] ?? "Unknown";
       Color playerColor =
           _getColorFromString(appData.playerData["color"] ?? "black");
-      final paragraphStyle = ui.ParagraphStyle(
-        textDirection: TextDirection.ltr,
-      );
+      final paragraphStyle =
+          ui.ParagraphStyle(textDirection: TextDirection.ltr);
       final textStyle = ui.TextStyle(color: playerColor, fontSize: 14);
       final paragraphBuilder = ui.ParagraphBuilder(paragraphStyle)
         ..pushStyle(textStyle)
-        ..addText(
-          "Press Up, Down, Left or Right keys to move (id: $playerId)",
-        );
-      final paragraph = paragraphBuilder.build();
-      paragraph.layout(ui.ParagraphConstraints(width: painterSize.width));
+        ..addText("Press Up, Down, Left or Right keys to move (id: $playerId)");
+      final paragraph = paragraphBuilder.build()
+        ..layout(ui.ParagraphConstraints(width: painterSize.width));
       canvas.drawParagraph(
         paragraph,
         Offset(10, painterSize.height - paragraph.height - 5),
       );
 
-      // Mostrar el círculo de conexión (esquina superior derecha)
       paint.color = appData.isConnected ? Colors.green : Colors.red;
       canvas.drawCircle(Offset(painterSize.width - 10, 10), 5, paint);
     }
   }
 
-  // Método para obtener la imagen del jugador según la dirección
+  // Resto del código (como _getPlayerImageForDirection) sigue igual
+
   ui.Image? _getPlayerImageForDirection(String direction) {
     String imageName;
-    print(direction);
-    // Dependiendo de la dirección, seleccionamos la imagen correspondiente
     switch (direction.toLowerCase()) {
       case "up":
         imageName = "walk-back.png";
@@ -183,41 +202,23 @@ class CanvasPainter extends CustomPainter {
       case "right":
         imageName = "walk-right.png";
         break;
-      case "idle":
       default:
-        imageName =
-            "idle-front.png"; // Dirección por defecto cuando está en idle
-        break;
+        return null;
     }
 
-    // Verificar si la imagen está en el caché
-    ui.Image? playerImage = imagesCache[imageName];
-    if (playerImage == null) {
-      print('🚨 No se encuentra la imagen: $imageName');
-    } else {
-      print('✔️ Imagen cargada: $imageName');
-      print('Tamaño de la imagen: ${playerImage.width}x${playerImage.height}');
-    }
-    return playerImage;
+    return imagesCache[imageName];
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 
-  // Convertir coordenadas del servidor a coordenadas de pintado
   Offset _serverToPainterCoords(Offset serverCoords, Size painterSize) {
     return Offset(
-      serverCoords.dx * painterSize.width / 15, // Ajuste basado en el mapa
+      serverCoords.dx * painterSize.width / 15,
       serverCoords.dy * painterSize.height / 15,
     );
   }
 
-  // Convertir el radio del servidor a radio de pintado
-  double _serverToPainterRadius(double serverRadius, Size painterSize) {
-    return serverRadius * painterSize.width;
-  }
-
-  // Convertir un string a un color
   static Color _getColorFromString(String color) {
     switch (color.toLowerCase()) {
       case "green":
@@ -233,51 +234,29 @@ class CanvasPainter extends CustomPainter {
     }
   }
 
-  // Dibujar las capas del mapa
   void _drawLayer(Canvas canvas, Layer layer, Size painterSize) {
     final image = imagesCache[layer.tilesSheetFile];
-
-    // Añadir un factor de escala
-    final scaleFactor =
-        1.5; // Escala por defecto, ajusta este valor según lo necesites.
-
-    // Escalar el tamaño de las tiles
+    final scaleFactor = 1.5;
     final tileWidth = layer.tilesWidth.toDouble() * scaleFactor;
     final tileHeight = layer.tilesHeight.toDouble() * scaleFactor;
 
-    // Verificamos si la imagen está en el caché
-    if (image == null) {
-      print(
-          '🚨 No se encuentra la imagen para la capa: ${layer.tilesSheetFile}');
-      return;
-    }
+    if (image == null) return;
 
-    // Iteramos por el tileMap de la capa y dibujamos las tiles
     for (int y = 0; y < layer.tileMap.length; y++) {
       for (int x = 0; x < layer.tileMap[y].length; x++) {
         int tileIndex = layer.tileMap[y][x];
-
         if (tileIndex != -1) {
-          // Asegurarte de que posX y posY son valores double
-          double posX =
-              x * tileWidth; // Ajustamos la posición X por el factor de escala
-          double posY =
-              y * tileHeight; // Ajustamos la posición Y por el factor de escala
+          double posX = x * tileWidth;
+          double posY = y * tileHeight;
 
-          // Cálculos para obtener la posición dentro de la imagen
-          int tilesPerRow = (image.width ~/
-              layer.tilesWidth); // Tiles por fila en la imagen original
+          int tilesPerRow = (image.width ~/ layer.tilesWidth);
           int tileX = (tileIndex % tilesPerRow) * layer.tilesWidth;
           int tileY = (tileIndex ~/ tilesPerRow) * layer.tilesHeight;
 
-          // Ajustamos las coordenadas dentro de la imagen al escalarlas
           Rect srcRect = Rect.fromLTWH(tileX.toDouble(), tileY.toDouble(),
               layer.tilesWidth.toDouble(), layer.tilesHeight.toDouble());
-
-          // Ajustamos el tamaño de destino para escalar la imagen
           Rect dstRect = Rect.fromLTWH(posX, posY, tileWidth, tileHeight);
 
-          // Dibujar la tile en el canvas con el tamaño escalado
           canvas.drawImageRect(image, srcRect, dstRect, Paint());
         }
       }

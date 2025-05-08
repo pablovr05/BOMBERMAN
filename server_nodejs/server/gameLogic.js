@@ -47,6 +47,7 @@ class GameLogic {
             radius: RADIUS,
             bombs: BOMBS,
             bomb_power: BOMB_POWER,
+            isDead: false,
             ws: ws,  // Aquí estamos almacenando el WebSocket del jugador
         });
     
@@ -151,11 +152,14 @@ class GameLogic {
             if (explosionTiles.some(tile => tile.x === playerX && tile.y === playerY)) {
                 console.log(`¡Jugador ${playerId} fue alcanzado por la explosión en (${playerX}, ${playerY})!`);
                 let ws = player.ws;
-                console.log(ws)
+
+                player.isDead = true;
+
                 if (ws) {
                     // Enviar un mensaje al jugador
                     ws.send(JSON.stringify({
                         type: "explosionHit",
+                        playerId: playerId,
                         message: `¡Fuiste alcanzado por la explosión!`
                     }));
                 }
@@ -213,9 +217,15 @@ class GameLogic {
                     if (this.players.has(id) && DIRECTIONS[obj.value]) {
                         // Actualiza la dirección del jugador
                         this.players.get(id).direction = obj.value;
-    
-                        // Llama a la función para hacer el broadcast de la dirección
-                        this.broadcastDirection(id, obj.value);
+
+                        const message = JSON.stringify({
+                            type: "playerDirection",
+                            playerId: id,
+                            direction: obj.value
+                        });
+                    
+                        // Llamamos a la función 'broadcast' para enviar el mensaje a todos los clientes
+                        this.ws.broadcast(message)
     
                         if (obj.isSpace === true) {
                             let posX = Math.floor(this.players.get(id).x);
@@ -245,17 +255,6 @@ class GameLogic {
         } catch (error) {
             console.error("Error al manejar el mensaje:", error);
         }
-    }
-
-    broadcastDirection(playerId, direction) {
-        const message = JSON.stringify({
-            type: "playerDirection",
-            playerId: playerId,
-            direction: direction
-        });
-    
-        // Llamamos a la función 'broadcast' para enviar el mensaje a todos los clientes
-        this.ws.broadcast(message)
     }
         
     // Función para verificar si la nueva posición es válida
