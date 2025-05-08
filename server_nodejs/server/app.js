@@ -17,8 +17,8 @@ app.use(express.static('public'));
 app.use(express.json());
 
 // Inicialitzar servidor HTTP
-const httpServer = app.listen(port, () => {
-    console.log(`Servidor HTTP escoltant a: http://localhost:${port}`);
+const httpServer = app.listen(port, '0.0.0.0', () => {
+    console.log(`Servidor HTTP escoltant en todos los puertos: http://0.0.0.0:${port}`);
 });
 
 // Gestionar WebSockets
