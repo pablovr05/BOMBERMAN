@@ -4,7 +4,7 @@ const webSockets = require('./utilsWebSockets.js');
 const GameLoop = require('./utilsGameLoop.js');
 
 const debug = true;
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8888;
 
 // Inicialitzar WebSockets i la lògica del joc
 const ws = new webSockets();
@@ -17,8 +17,8 @@ app.use(express.static('public'));
 app.use(express.json());
 
 // Inicialitzar servidor HTTP
-const httpServer = app.listen(port, '0.0.0.0', () => {
-    console.log(`Servidor HTTP escoltant en todos los puertos: http://0.0.0.0:${port}`);
+const httpServer = app.listen(port, () => {
+    console.log(`Servidor HTTP escoltant a: http://localhost:${port}`);
 });
 
 // Gestionar WebSockets
