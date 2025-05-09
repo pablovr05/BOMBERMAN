@@ -4,7 +4,7 @@ const webSockets = require('./utilsWebSockets.js');
 const GameLoop = require('./utilsGameLoop.js');
 
 const debug = true;
-const port = process.env.PORT || 8888;
+const port = 8888;
 
 // Inicialitzar WebSockets i la lògica del joc
 const ws = new webSockets();
