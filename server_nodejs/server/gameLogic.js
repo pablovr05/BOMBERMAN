@@ -146,28 +146,36 @@ class GameLogic {
     
     checkPlayersHit(explosionTiles) {
         this.players.forEach((player, playerId) => {
-            let playerX = Math.floor(player.x);
-            let playerY = Math.floor(player.y);
+            const playerX = Math.floor(player.x);
+            const playerY = Math.floor(player.y);
     
-            // Comprobar si la posición del jugador está en la lista de explosión
-            if (explosionTiles.some(tile => tile.x === playerX && tile.y === playerY)) {
+            const hit = explosionTiles.some(tile => tile.x === playerX && tile.y === playerY);
+    
+            if (hit && !player.isDead) {
                 console.log(`¡Jugador ${playerId} fue alcanzado por la explosión en (${playerX}, ${playerY})!`);
-                let ws = player.ws;
-
                 player.isDead = true;
-
-                if (ws) {
-                    // Enviar un mensaje al jugador
+    
+                const ws = player.ws;
+    
+                if (ws && ws.readyState === 1) {
+                    // Enviar mensaje final antes de expulsar
                     ws.send(JSON.stringify({
                         type: "explosionHit",
                         playerId: playerId,
-                        message: `¡Fuiste alcanzado por la explosión!`
+                        message: "¡Fuiste alcanzado por la explosión y expulsado del juego!"
                     }));
+    
+                    // Cerrar conexión después de un pequeño delay
+                    setTimeout(() => {
+                        ws.close(1000, "Expulsado por explosión");
+                    }, 500); // medio segundo para que el mensaje se reciba
                 }
+    
+                // Eliminar del mapa de jugadores
+                this.players.delete(playerId);
             }
         });
     }
-    
     
     // Función para revertir la explosión
     clearExplosion(bombX, bombY, bombPower) {
