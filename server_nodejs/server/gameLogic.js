@@ -1,3 +1,4 @@
+const path = require('path');
 const fs = require('fs');
 'use strict';
 
@@ -339,7 +340,8 @@ updateGame(fps) {
 
     loadMapData() {
         try {
-            const rawData = fs.readFileSync('assets/game_data.json', 'utf8');
+            const filePath = path.resolve(__dirname, '../assets/game_data.json');
+            const rawData = fs.readFileSync(filePath, 'utf8');
             const mapData = JSON.parse(rawData);
             return mapData;
         } catch (error) {
