@@ -27,7 +27,7 @@ class WebSocketsHandler {
     connectionStatus = ConnectionStatus.connecting;
 
     try {
-      _socketClient = WebSocketChannel.connect(Uri.parse("ws://$ip:$port"));
+      _socketClient = WebSocketChannel.connect(Uri.parse("wss://$ip"));
       connectionStatus = ConnectionStatus.connected;
 
       _socketClient!.stream.listen(

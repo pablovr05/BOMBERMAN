@@ -8,7 +8,7 @@ import 'utils_websockets.dart';
 class AppData extends ChangeNotifier {
   // Atributs per gestionar la connexió
   final WebSocketsHandler _wsHandler = WebSocketsHandler();
-  final String _wsServer = "localhost";
+  final String _wsServer = "bandera3.ieti.site";
   final int _wsPort = 8888;
   bool isConnected = false;
   int _reconnectAttempts = 0;
